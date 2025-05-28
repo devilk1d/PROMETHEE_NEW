@@ -1,0 +1,208 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\Alternative;
+use App\Models\Criteria;
+
+class PrometheeService
+{
+    public function calculatePromethee($alternatives, $criterias)
+    {
+        // 1. Hitung matriks preferensi untuk setiap kriteria
+        $preferenceMatrices = $this->calculatePreferenceMatrices($alternatives, $criterias);
+        
+        // 2. Agregasikan matriks preferensi dengan bobot kriteria
+        $aggregatedPreference = $this->calculateAggregatedPreference($preferenceMatrices, $criterias);
+        
+        // 3. Hitung leaving flow, entering flow, dan net flow
+        $flows = $this->calculateFlows($aggregatedPreference, $alternatives);
+        
+        // 4. Hitung ranking berdasarkan net flow
+        return $this->calculateNetFlowsAndRanking($flows, $alternatives);
+    }
+
+    /**
+     * Menghitung matriks preferensi untuk setiap kriteria
+     */
+    private function calculatePreferenceMatrices($alternatives, $criterias)
+{
+    $preferenceMatrices = [];
+
+    foreach ($criterias as $criteria) {
+        $matrix = [];
+        
+        foreach ($alternatives as $a) {
+            foreach ($alternatives as $b) {
+                // Gunakan nilai asli tanpa normalisasi
+                $valueA = $a->getCriteriaValue($criteria->id);
+                $valueB = $b->getCriteriaValue($criteria->id);
+                
+                // Perbaikan disini - balik selisih untuk kriteria cost
+                $diff = $criteria->type === 'cost' ? $valueB - $valueA : $valueA - $valueB;
+                
+                $matrix[$a->id][$b->id] = $this->calculatePreference(
+                    $diff,
+                    $criteria->preference_function,
+                    $criteria->p ?? 0,
+                    $criteria->q ?? 0
+                );
+            }
+        }
+        
+        $preferenceMatrices[$criteria->id] = $matrix;
+    }
+
+    return $preferenceMatrices;
+}
+
+    /**
+     * Menghitung nilai preferensi berdasarkan fungsi preferensi
+     */
+    private function calculatePreference($diff, $functionType, $p, $q)
+    {
+        switch ($functionType) {
+            case Criteria::PREFERENCE_USUAL:
+                // Usual Criterion (Type I)
+                return $diff > 0 ? 1 : 0;
+                
+            case Criteria::PREFERENCE_QUASI:
+                // Quasi Criterion (Type II)
+                return $diff > $q ? 1 : 0;
+                
+            case Criteria::PREFERENCE_LINEAR:
+                // Linear Preference (Type III)
+                if ($diff <= 0) return 0;
+                if ($diff >= $p) return 1;
+                return $diff / $p;
+                
+            case Criteria::PREFERENCE_LEVEL:
+                // Level Criterion (Type IV)
+                if ($diff <= $q) return 0;
+                if ($diff > $p) return 1;
+                return 0.5;
+                
+            case Criteria::PREFERENCE_LINEAR_QUASI:
+                // Linear with Indifference (Type V)
+                if ($diff <= $q) return 0;
+                if ($diff >= $p) return 1;
+                return ($diff - $q) / ($p - $q);
+                
+            case Criteria::PREFERENCE_GAUSSIAN:
+                // Gaussian Criterion (Type VI)
+                if ($diff <= 0) return 0;
+                return 1 - exp(-($diff * $diff) / (2 * $p * $p));
+                
+            default:
+                return 0;
+        }
+    }
+
+    /**
+     * Mengagregasikan matriks preferensi dengan bobot kriteria
+     */
+    private function calculateAggregatedPreference($preferenceMatrices, $criterias)
+    {
+        $aggregated = [];
+        $totalWeight = $criterias->sum('weight');
+
+        foreach ($preferenceMatrices as $criteriaId => $matrix) {
+            $weight = $criterias->firstWhere('id', $criteriaId)->weight;
+            
+            foreach ($matrix as $aId => $prefs) {
+                foreach ($prefs as $bId => $pref) {
+                    if (!isset($aggregated[$aId][$bId])) {
+                        $aggregated[$aId][$bId] = 0;
+                    }
+                    $aggregated[$aId][$bId] += ($weight / $totalWeight) * $pref;
+                }
+            }
+        }
+
+        return $aggregated;
+    }
+
+    /**
+     * Menghitung leaving flow, entering flow, dan net flow
+     */
+    private function calculateFlows($aggregatedPreference, $alternatives)
+    {
+        $n = count($alternatives);
+        $flows = [];
+
+        foreach ($aggregatedPreference as $aId => $preferences) {
+            // Leaving flow (Φ+)
+            $positiveFlow = $n > 1 ? array_sum($preferences) / ($n - 1) : 0;
+            
+            // Entering flow (Φ-)
+            $negativeFlow = 0;
+            foreach ($aggregatedPreference as $bId => $prefs) {
+                if (isset($prefs[$aId])) {
+                    $negativeFlow += $prefs[$aId];
+                }
+            }
+            $negativeFlow = $n > 1 ? $negativeFlow / ($n - 1) : 0;
+            
+            // Net flow (Φ)
+            $flows[$aId] = [
+                'positive' => $positiveFlow,
+                'negative' => $negativeFlow,
+                'net' => $positiveFlow - $negativeFlow
+            ];
+        }
+
+        return $flows;
+    }
+
+    /**
+     * Menghitung ranking berdasarkan net flow
+     */
+    private function calculateNetFlowsAndRanking($flows, $alternatives)
+    {
+        // Map flows ke struktur lengkap (termasuk id dan nama)
+        $items = collect($flows)->map(function ($flow, $altId) use ($alternatives) {
+            $alternative = $alternatives->firstWhere('id', $altId);
+            return [
+                'id'             => $altId,
+                'name'           => $alternative->name,
+                'positive_flow'  => $flow['positive'],
+                'negative_flow'  => $flow['negative'],
+                'net_flow'       => $flow['net'],
+            ];
+        })->values();
+
+        // Sort dengan custom callback
+        $sorted = $items->sort(function ($a, $b) {
+            // 1) Net Flow descending
+            if ($a['net_flow'] !== $b['net_flow']) {
+                return $b['net_flow'] <=> $a['net_flow'];
+            }
+
+            // 2) Positive Flow descending
+            if ($a['positive_flow'] !== $b['positive_flow']) {
+                return $b['positive_flow'] <=> $a['positive_flow'];
+            }
+
+            // 3) Nama alternatif ascending
+            return $a['name'] <=> $b['name'];
+        })->values();
+
+        // Masukkan rank (1, 2, 3, …)
+        $ranking = $sorted->mapWithKeys(function ($item, $index) {
+            return [
+                $item['id'] => [
+                    'rank'           => $index + 1,
+                    'name'           => $item['name'],
+                    'positive_flow'  => $item['positive_flow'],
+                    'negative_flow'  => $item['negative_flow'],
+                    'net_flow'       => $item['net_flow'],
+                ]
+            ];
+        })->toArray();
+
+        return [
+            'flows'   => $flows,
+            'ranking' => $ranking,
+        ];
+    }
+}
