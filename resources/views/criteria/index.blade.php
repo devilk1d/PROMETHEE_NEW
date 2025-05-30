@@ -2,6 +2,9 @@
 
 @section('title', 'Criteria - ' . $case->name)
 
+@section('scripts')
+    @vite(['resources/js/criteria/index.js'])
+
 @section('styles')
     @vite(['resources/css/criteria/index.css'])
 
@@ -91,11 +94,10 @@
                                 <a href="{{ route('criteria.edit', ['case' => $case->id, 'criterion' => $criteria->id]) }}" class="btn-icon btn-icon-primary">
                                     <i class="bi bi-pencil"></i>
                                 </a>
-                                <form action="{{ route('criteria.destroy', ['case' => $case->id, 'criterion' => $criteria->id]) }}" method="POST" class="d-inline">
+                                <form action="{{ route('criteria.destroy', ['case' => $case->id, 'criterion' => $criteria->id]) }}" method="POST" class="d-inline delete-form">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="btn-icon btn-icon-danger" 
-                                            onclick="return confirm('Are you sure you want to delete this criteria?')">
+                                    <button type="submit" class="btn-icon btn-icon-danger">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </form>
@@ -120,4 +122,5 @@
         </div>
     @endif
 </div>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 @endsection

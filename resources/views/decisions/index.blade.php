@@ -2,6 +2,9 @@
 
 @section('title', 'Decisions - ' . $case->name)
 
+@section('scripts')
+    @vite(['resources/js/decisions/index.js'])
+
 @section('styles')
     @vite(['resources/css/decisions/index.css'])
 
@@ -112,7 +115,7 @@
                                     <form action="{{ route('decisions.destroy', ['case' => $case->id, 'decision' => $decision->id]) }}" method="POST" class="d-inline">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="dropdown-item text-danger" onclick="return confirm('Are you sure?')">
+                                        <button type="submit" class="dropdown-item text-danger">
                                             <i class="bi bi-trash"></i> Delete
                                         </button>
                                     </form>
@@ -138,5 +141,5 @@
         </div>
     @endif
 </div>
-
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 @endsection

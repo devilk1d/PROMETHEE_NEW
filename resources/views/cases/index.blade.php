@@ -2,6 +2,9 @@
 
 @section('title', 'Case Management')
 
+@section('scripts')
+    @vite(['resources/js/cases/index.js'])
+
 @section('styles')
     @vite(['resources/css/cases/index.css'])
 
@@ -98,11 +101,10 @@
                                 <a href="{{ route('cases.edit', $case->id) }}" class="btn-icon btn-icon-primary" title="Edit">
                                     <i class="bi bi-pencil"></i>
                                 </a>
-                                <form action="{{ route('cases.destroy', $case->id) }}" method="POST" class="d-inline">
+                                <form action="{{ route('cases.destroy', $case->id) }}" method="POST" class="d-inline delete-form">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="btn-icon btn-icon-danger" title="Delete"
-                                            onclick="return confirm('Are you sure you want to delete this case? This will also delete all associated criteria, alternatives, and decisions.')">
+                                    <button type="submit" class="btn-icon btn-icon-danger" title="Delete">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </form>
@@ -127,4 +129,6 @@
         </div>
     @endif
 </div>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 @endsection

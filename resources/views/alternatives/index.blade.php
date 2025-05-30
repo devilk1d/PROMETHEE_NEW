@@ -2,6 +2,9 @@
 
 @section('title', 'Alternatives - ' . $case->name)
 
+@section('scripts')
+    @vite(['resources/js/alternatives/index.js'])
+
 @section('styles')
     @vite(['resources/css/alternatives/index.css'])
 
@@ -69,11 +72,10 @@
                                 <a href="{{ route('alternatives.edit', ['case' => $case->id, 'alternative' => $alternative->id]) }}" class="btn-icon btn-icon-primary">
                                     <i class="bi bi-pencil"></i>
                                 </a>
-                                <form action="{{ route('alternatives.destroy', ['case' => $case->id, 'alternative' => $alternative->id]) }}" method="POST" class="d-inline">
+                                <form action="{{ route('alternatives.destroy', ['case' => $case->id, 'alternative' => $alternative->id]) }}" method="POST" class="d-inline delete-form">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="btn-icon btn-icon-danger" 
-                                            onclick="return confirm('Are you sure you want to delete this alternative?')">
+                                    <button type="submit" class="btn-icon btn-icon-danger">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </form>
@@ -98,4 +100,5 @@
         </div>
     @endif
 </div>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 @endsection

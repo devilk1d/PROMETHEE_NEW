@@ -1,5 +1,3 @@
-// resources/js/alternatives/batch.js
-
 // Variables to store configuration
 let alternativeCounter = 0;
 let criterias = [];

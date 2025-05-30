@@ -275,6 +275,22 @@
     margin-bottom: 1.5rem;
 }
 
+.swal2-popup {
+    border-radius: 16px !important;
+    padding: 2rem !important;
+}
+
+.swal2-title {
+    font-size: 1.25rem !important;
+    font-weight: 600 !important;
+    color: var(--gray-900) !important;
+}
+
+.swal2-html-container {
+    color: var(--gray-600) !important;
+    font-size: 0.95rem !important;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .main-header {

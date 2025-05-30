@@ -191,7 +191,7 @@
 @endif
 
 @push('scripts')
-    @vite(['resources/js/batch.js'])
+    @vite(['resources/js/alternatives/batch.js'])
     <!-- Pass Laravel data to JavaScript via data attributes -->
     <div id="js-config" 
          data-initial-count="{{ count($alternatives) ?: 0 }}"
