@@ -50,14 +50,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/decisions/{decision}/result', [DecisionController::class, 'result'])->name('decisions.result');
     Route::delete('/decisions/{decision}', [DecisionController::class, 'destroy'])->name('decisions.destroy');
 
-    // Criteria Values Routes
-    Route::get('/alternatives/{alternative}/criteria/{criteria}/edit', 
-        [CriteriaValueController::class, 'edit'])
-        ->name('criteria_values.edit');
-        
-    Route::put('/alternatives/{alternative}/criteria/{criteria}', 
-        [CriteriaValueController::class, 'update'])
-        ->name('criteria_values.update');
+
 });
 
 // Authentication routes

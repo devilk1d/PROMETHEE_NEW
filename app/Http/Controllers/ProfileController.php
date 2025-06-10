@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Alternative;
+use App\Models\Decision;
 use App\Http\Requests\ProfileUpdateRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,10 +18,15 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): View
     {
+        $user = $request->user();
+
         return view('profile.edit', [
-            'user' => $request->user(),
+            'user' => $user,
+            'alternativeCount' => Alternative::where('user_id', $user->id)->count(),
+            'decisionCount' => Decision::where('user_id', $user->id)->count(),
         ]);
     }
+
 
     /**
      * Update the user's profile information.

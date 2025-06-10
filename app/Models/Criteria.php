@@ -42,11 +42,6 @@ class Criteria extends Model
         ];
     }
 
-    public function case()
-    {
-        return $this->belongsTo(Cases::class, 'case_id');
-    }
-
     public function values()
     {
         return $this->hasMany(CriteriaValue::class);

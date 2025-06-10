@@ -40,8 +40,8 @@
                         <i class="bi bi-folder"></i>
                     </div>
                     <div class="stat-content">
-                        <span class="stat-value">{{ \App\Models\Cases::count() }}</span>
-                        <span class="stat-label">Cases Created</span>
+                        <span class="stat-value">{{ $alternativeCount }}</span>
+                        <span class="stat-label">Alternatives Created</span>
                     </div>
                 </div>
                 <div class="stat-item">
@@ -49,7 +49,7 @@
                         <i class="bi bi-calculator"></i>
                     </div>
                     <div class="stat-content">
-                        <span class="stat-value">{{ \App\Models\Decision::count() }}</span>
+                        <span class="stat-value">{{ $decisionCount }}</span>
                         <span class="stat-label">Analyses Run</span>
                     </div>
                 </div>

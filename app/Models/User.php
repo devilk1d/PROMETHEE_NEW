@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -21,7 +20,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'role',  // Pastikan role ada di sini
+        'role', // Pastikan role ada di sini
     ];
 
     /**
@@ -44,7 +43,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'role' => 'string', // Explicitly cast role as string
+            'role' => 'string',
         ];
     }
 
@@ -71,35 +70,5 @@ class User extends Authenticatable
         return $this->role === 'user';
     }
 
-    /**
-     * Get the cases for the user.
-     */
-    public function cases()
-    {
-        return $this->hasMany(Cases::class);
-    }
-
-    /**
-     * Get all criteria through cases
-     */
-    public function criteria()
-    {
-        return $this->hasManyThrough(Criteria::class, Cases::class);
-    }
-
-    /**
-     * Get all alternatives through cases
-     */
-    public function alternatives()
-    {
-        return $this->hasManyThrough(Alternative::class, Cases::class);
-    }
-
-    /**
-     * Get all decisions through cases
-     */
-    public function decisions()
-    {
-        return $this->hasManyThrough(Decision::class, Cases::class);
-    }
+    // Relasi melalui Cases dihapus
 }

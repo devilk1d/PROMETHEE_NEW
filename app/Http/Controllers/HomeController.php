@@ -27,7 +27,7 @@ class HomeController extends Controller
         try {
             $userId = Auth::id();
             
-            // Get statistics - NO MORE CASES
+            // Get statistics
             $totalCriteria = Criteria::count();
             $totalAlternatives = Alternative::where('user_id', $userId)->count();
             $totalDecisions = Decision::where('user_id', $userId)->count();

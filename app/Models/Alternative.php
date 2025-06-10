@@ -9,12 +9,7 @@ class Alternative extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'description', 'case_id', 'user_id'];
-
-    public function case()
-    {
-        return $this->belongsTo(Cases::class, 'case_id');
-    }
+    protected $fillable = ['name', 'description', 'user_id'];
 
     public function user()
     {
