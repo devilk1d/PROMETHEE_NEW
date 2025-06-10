@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Alternatives - ' . $case->name)
+@section('title', 'Alternatives')
 
 @section('scripts')
     @vite(['resources/js/alternatives/index.js'])
@@ -13,14 +13,14 @@
 <div class="main-header">
     <div>
         <h1 class="main-title">Alternatives Management</h1>
-        <p class="main-subtitle">{{ $case->name }} - Define decision alternatives for evaluation</p>
+        <p class="main-subtitle">Define decision alternatives for evaluation</p>
     </div>
     <div class="header-actions">
-        <a href="{{ route('alternatives.batch', ['case' => $case->id]) }}" class="btn-modern btn-secondary-modern">
+        <a href="{{ route('alternatives.batch') }}" class="btn-modern btn-secondary-modern">
             <i class="bi bi-list-check"></i>
             Batch Manage
         </a>
-        <a href="{{ route('alternatives.create', ['case' => $case->id]) }}" class="btn-modern btn-primary-modern">
+        <a href="{{ route('alternatives.create') }}" class="btn-modern btn-primary-modern">
             <i class="bi bi-plus-circle"></i>
             Add New Alternative
         </a>
@@ -69,10 +69,10 @@
                         </td>
                         <td class="text-end">
                             <div class="action-buttons">
-                                <a href="{{ route('alternatives.edit', ['case' => $case->id, 'alternative' => $alternative->id]) }}" class="btn-icon btn-icon-primary">
+                                <a href="{{ route('alternatives.edit', ['alternative' => $alternative->id]) }}" class="btn-icon btn-icon-primary">
                                     <i class="bi bi-pencil"></i>
                                 </a>
-                                <form action="{{ route('alternatives.destroy', ['case' => $case->id, 'alternative' => $alternative->id]) }}" method="POST" class="d-inline delete-form">
+                                <form action="{{ route('alternatives.destroy', ['alternative' => $alternative->id]) }}" method="POST" class="d-inline delete-form">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="btn-icon btn-icon-danger">
@@ -93,7 +93,7 @@
             </div>
             <h4 class="empty-title">No alternatives found yet</h4>
             <p class="empty-description">Create alternatives that represent the different options you want to evaluate in your decision analysis.</p>
-            <a href="{{ route('alternatives.create', ['case' => $case->id]) }}" class="btn-modern btn-primary-modern">
+            <a href="{{ route('alternatives.create') }}" class="btn-modern btn-primary-modern">
                 <i class="bi bi-plus-circle"></i>
                 Add First Alternative
             </a>

@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Cases;
 use App\Models\Decision;
 use App\Models\Alternative;
 use App\Models\Criteria;
@@ -28,34 +27,18 @@ class HomeController extends Controller
         try {
             $userId = Auth::id();
             
-            // Get cases with counts - filtered by current user
-            $cases = Cases::withCount(['criteria', 'alternatives', 'decisions'])
-                ->where('user_id', $userId)
-                ->latest()
-                ->get();
-                
-            // Get statistics for current user only
-            $userCases = Cases::where('user_id', $userId)->pluck('id');
-            
-            $totalCases = $cases->count();
-            $totalAlternatives = Alternative::whereIn('case_id', $userCases)->count();
-            $totalDecisions = Decision::whereIn('case_id', $userCases)->count();
-            $totalCriteria = Criteria::whereIn('case_id', $userCases)->count();
+            // Get statistics - NO MORE CASES
+            $totalCriteria = Criteria::count();
+            $totalAlternatives = Alternative::where('user_id', $userId)->count();
+            $totalDecisions = Decision::where('user_id', $userId)->count();
 
-            // Recent decisions for current user only
-            $recentDecisions = Decision::with(['case' => function($query) {
-                    $query->select('id', 'name', 'user_id');
-                }])
-                ->whereHas('case', function($query) use ($userId) {
-                    $query->where('user_id', $userId);
-                })
+            // Recent decisions - global for all users
+            $recentDecisions = Decision::where('user_id', $userId)
                 ->latest()
                 ->take(5)
                 ->get();
 
             return view('home', compact(
-                'cases',
-                'totalCases',
                 'totalAlternatives',
                 'totalDecisions',
                 'totalCriteria',
@@ -67,8 +50,6 @@ class HomeController extends Controller
             
             // Return view with empty data to prevent crash
             return view('home', [
-                'cases' => collect(),
-                'totalCases' => 0,
                 'totalAlternatives' => 0,
                 'totalDecisions' => 0,
                 'totalCriteria' => 0,

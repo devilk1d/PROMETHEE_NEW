@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'PROMETHEE Calculation - ' . $case->name)
+@section('title', 'PROMETHEE Calculation')
 
 @section('styles')
     @vite(['resources/css/decisions/calculate.css'])
@@ -10,10 +10,10 @@
 <div class="main-header">
     <div>
         <h1 class="main-title">PROMETHEE Analysis</h1>
-        <p class="main-subtitle">{{ $case->name }} - Configure and execute multi-criteria decision analysis</p>
+        <p class="main-subtitle">Configure and execute multi-criteria decision analysis</p>
     </div>
     <div class="header-actions">
-        <a href="{{ route('decisions.index', ['case' => $case->id]) }}" class="btn-modern btn-secondary-modern">
+        <a href="{{ route('decisions.index') }}" class="btn-modern btn-secondary-modern">
             <i class="bi bi-arrow-left"></i>
             Back to Results
         </a>
@@ -27,27 +27,24 @@
             <div class="alert-text">
                 <h4>Setup Required</h4>
                 @if($alternatives->isEmpty())
-                    <p>No alternatives found in this case. Please add alternatives first.</p>
+                    <p>No alternatives found. Please add alternatives first.</p>
                 @endif
                 @if($criterias->isEmpty())
-                    <p>No criteria found in this case. Please add criteria first.</p>
+                    <p>No criteria found. Please add criteria first.</p>
                 @endif
             </div>
         </div>
         <div class="alert-actions">
             @if($criterias->isEmpty())
-                <a href="{{ route('criteria.create', ['case' => $case->id]) }}" class="btn-modern btn-primary-modern">
+                <a href="{{ route('criteria.create') }}" class="btn-modern btn-primary-modern">
                     <i class="bi bi-list-check"></i> Add Criteria
                 </a>
             @endif
             @if($alternatives->isEmpty())
-                <a href="{{ route('alternatives.create', ['case' => $case->id]) }}" class="btn-modern btn-primary-modern">
+                <a href="{{ route('alternatives.create') }}" class="btn-modern btn-primary-modern">
                     <i class="bi bi-grid-3x3-gap"></i> Add Alternatives
                 </a>
             @endif
-            <a href="{{ route('cases.show', $case->id) }}" class="btn-modern btn-secondary-modern">
-                <i class="bi bi-arrow-left"></i> Go to Case Dashboard
-            </a>
         </div>
     </div>
 @else
@@ -62,7 +59,7 @@
                 Analysis Configuration
             </h3>
             
-            <form method="POST" action="{{ route('decisions.process', ['case' => $case->id]) }}" id="calculationForm">
+            <form method="POST" action="{{ route('decisions.process') }}" id="calculationForm">
                 @csrf
 
                 <div class="form-group">
@@ -240,7 +237,6 @@
         </div>
     </div>
 </div>
-
 @endif
 
 @push('scripts')
@@ -262,16 +258,19 @@ document.addEventListener('DOMContentLoaded', function() {
             const altId = row.getAttribute('data-alt-id');
             const checkbox = document.querySelector(`input[value="${altId}"]`);
             const altStatus = row.querySelector('.alt-status');
-            const altStatusIcon = altStatus.querySelector('i');
             
             if (checkbox && checkbox.checked) {
                 row.classList.add('selected');
-                altStatus.classList.add('selected');
-                altStatus.innerHTML = '<i class="bi bi-check-circle-fill"></i> Selected';
+                if (altStatus) {
+                    altStatus.classList.add('selected');
+                    altStatus.innerHTML = '<i class="bi bi-check-circle-fill"></i> Selected';
+                }
             } else {
                 row.classList.remove('selected');
-                altStatus.classList.remove('selected');
-                altStatus.innerHTML = '<i class="bi bi-circle"></i> Not Selected';
+                if (altStatus) {
+                    altStatus.classList.remove('selected');
+                    altStatus.innerHTML = '<i class="bi bi-circle"></i> Not Selected';
+                }
             }
         });
     }

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Batch Manage Criteria - ' . $case->name)
+@section('title', 'Batch Manage Criteria')
 
 @section('styles')
     @vite(['resources/css/criteria/batch.css'])
@@ -10,14 +10,14 @@
 <div class="main-header">
     <div>
         <h1 class="main-title">Batch Manage Criteria</h1>
-        <p class="main-subtitle">{{ $case->name }} - Efficiently manage multiple criteria at once</p>
+        <p class="main-subtitle">Efficiently manage multiple criteria at once</p>
     </div>
     <div class="header-actions">
         <button type="button" id="addCriteriaRow" class="btn-modern btn-success-modern">
             <i class="bi bi-plus-circle"></i>
             Add Row
         </button>
-        <a href="{{ route('criteria.index', ['case' => $case->id]) }}" class="btn-modern btn-secondary-modern">
+        <a href="{{ route('criteria.index') }}" class="btn-modern btn-secondary-modern">
             <i class="bi bi-arrow-left"></i>
             Back to List
         </a>
@@ -50,7 +50,7 @@
         <p class="section-subtitle">Add, edit, or remove multiple criteria efficiently</p>
     </div>
 
-    <form method="POST" action="{{ route('criteria.batchStore', ['case' => $case->id]) }}" id="criteriaBatchForm">
+    <form method="POST" action="{{ route('criteria.batchStore') }}" id="criteriaBatchForm">
         @csrf
         
         <!-- Add a hidden config element for JavaScript -->

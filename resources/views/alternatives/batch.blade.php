@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Batch Manage Alternatives - ' . $case->name)
+@section('title', 'Batch Manage Alternatives')
 
 @section('styles')
     @vite(['resources/css/alternatives/batch.css'])
@@ -10,14 +10,14 @@
 <div class="main-header">
     <div>
         <h1 class="main-title">Batch Manage Alternatives</h1>
-        <p class="main-subtitle">{{ $case->name }} - Efficiently manage multiple alternatives with criteria values</p>
+        <p class="main-subtitle">Efficiently manage multiple alternatives with criteria values</p>
     </div>
     <div class="header-actions">
         <button type="button" id="addAlternativeRow" class="btn-modern btn-success-modern">
             <i class="bi bi-plus-circle"></i>
             Add Row
         </button>
-        <a href="{{ route('alternatives.index', ['case' => $case->id]) }}" class="btn-modern btn-secondary-modern">
+        <a href="{{ route('alternatives.index') }}" class="btn-modern btn-secondary-modern">
             <i class="bi bi-arrow-left"></i>
             Back to List
         </a>
@@ -43,7 +43,7 @@
 @if($criterias->isEmpty())
     <div class="alert alert-warning modern-alert" role="alert">
         <i class="bi bi-exclamation-triangle me-2"></i>
-        No criteria available. Please <a href="{{ route('criteria.create', ['case' => $case->id]) }}" class="alert-link">create criteria</a> first before managing alternatives.
+        No criteria available. Please <a href="{{ route('criteria.create') }}" class="alert-link">create criteria</a> first before managing alternatives.
     </div>
 @else
 
@@ -78,7 +78,7 @@
         </div>
     </div>
 
-    <form method="POST" action="{{ route('alternatives.batchStore', ['case' => $case->id]) }}" id="alternativesBatchForm">
+    <form method="POST" action="{{ route('alternatives.batchStore') }}" id="alternativesBatchForm">
         @csrf
         
         <div class="table-container">

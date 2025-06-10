@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Decisions - ' . $case->name)
+@section('title', 'Decisions')
 
 @section('scripts')
     @vite(['resources/js/decisions/index.js'])
@@ -13,10 +13,10 @@
 <div class="main-header">
     <div>
         <h1 class="main-title">Decision Analysis</h1>
-        <p class="main-subtitle">{{ $case->name }} - PROMETHEE analysis results and calculations</p>
+        <p class="main-subtitle">PROMETHEE analysis results and calculations</p>
     </div>
     <div class="header-actions">
-        <a href="{{ route('decisions.calculate', ['case' => $case->id]) }}" class="btn-modern btn-primary-modern">
+        <a href="{{ route('decisions.calculate') }}" class="btn-modern btn-primary-modern">
             <i class="bi bi-calculator"></i>
             New Analysis
         </a>
@@ -98,7 +98,7 @@
                 
                 <div class="decision-footer">
                     <div class="decision-actions">
-                        <a href="{{ route('decisions.result', ['case' => $case->id, 'decision' => $decision->id]) }}" class="btn-modern btn-primary-modern btn-sm">
+                        <a href="{{ route('decisions.result', ['decision' => $decision->id]) }}" class="btn-modern btn-primary-modern btn-sm">
                             <i class="bi bi-eye"></i>
                             View Results
                         </a>
@@ -107,12 +107,12 @@
                                 <i class="bi bi-three-dots"></i>
                             </button>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{{ route('decisions.result', ['case' => $case->id, 'decision' => $decision->id]) }}">
+                                <li><a class="dropdown-item" href="{{ route('decisions.result', ['decision' => $decision->id]) }}">
                                     <i class="bi bi-eye"></i> View Details
                                 </a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
-                                    <form action="{{ route('decisions.destroy', ['case' => $case->id, 'decision' => $decision->id]) }}" method="POST" class="d-inline">
+                                    <form action="{{ route('decisions.destroy', ['decision' => $decision->id]) }}" method="POST" class="d-inline">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="dropdown-item text-danger">
@@ -134,7 +134,7 @@
             </div>
             <h4 class="empty-title">No analysis results yet</h4>
             <p class="empty-description">Start your first PROMETHEE analysis to see decision results and rankings here.</p>
-            <a href="{{ route('decisions.calculate', ['case' => $case->id]) }}" class="btn-modern btn-primary-modern">
+            <a href="{{ route('decisions.calculate') }}" class="btn-modern btn-primary-modern">
                 <i class="bi bi-calculator"></i>
                 Calculate PROMETHEE
             </a>

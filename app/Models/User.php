@@ -21,6 +21,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',  // Pastikan role ada di sini
     ];
 
     /**
@@ -43,7 +44,31 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'role' => 'string', // Explicitly cast role as string
         ];
+    }
+
+    /**
+     * Default attributes
+     */
+    protected $attributes = [
+        'role' => 'user', // Default role
+    ];
+
+    /**
+     * Check if user is admin
+     */
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    /**
+     * Check if user is regular user
+     */
+    public function isUser(): bool
+    {
+        return $this->role === 'user';
     }
 
     /**

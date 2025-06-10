@@ -3,7 +3,8 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use App\Http\Middleware\EnsureCaseOwnership;
+use App\Http\Middleware\CheckRole;
+use App\Http\Middleware\EnsureUserOwnership;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -12,8 +13,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // Register the middleware aliases
         $middleware->alias([
-            'ensure.case.ownership' => EnsureCaseOwnership::class,
+            'role' => CheckRole::class,
+            'ensure.user.ownership' => EnsureUserOwnership::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

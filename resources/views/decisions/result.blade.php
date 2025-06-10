@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'PROMETHEE Result - ' . $case->name)
+@section('title', 'PROMETHEE Result')
 
 @section('styles')
     @vite(['resources/css/decisions/results-style.css'])
@@ -11,10 +11,10 @@
     <div class="header-main">
         <div class="title-section">
             <h1 class="result-title">{{ $decision->name }}</h1>
-            <p class="result-subtitle">{{ $case->name }} - PROMETHEE analysis results and rankings</p>
+            <p class="result-subtitle">PROMETHEE analysis results and rankings</p>
         </div>
         <div class="header-actions">
-            <a href="{{ route('decisions.index', ['case' => $case->id]) }}" class="btn-modern btn-secondary-modern">
+            <a href="{{ route('decisions.index') }}" class="btn-modern btn-secondary-modern">
                 <i class="bi bi-arrow-left"></i>
                 Back to Decisions
             </a>

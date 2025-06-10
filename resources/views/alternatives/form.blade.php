@@ -10,10 +10,10 @@
 <div class="main-header">
     <div>
         <h1 class="main-title">{{ $alternative->id ? 'Edit' : 'Create' }} Alternative</h1>
-        <p class="main-subtitle">{{ $case->name }} - Define decision alternative for PROMETHEE analysis</p>
+        <p class="main-subtitle">Define decision alternative for PROMETHEE analysis</p>
     </div>
     <div class="header-actions">
-        <a href="{{ route('alternatives.index', ['case' => $case->id]) }}" class="btn-modern btn-secondary-modern">
+        <a href="{{ route('alternatives.index') }}" class="btn-modern btn-secondary-modern">
             <i class="bi bi-arrow-left"></i>
             Back to Alternatives
         </a>
@@ -23,7 +23,12 @@
 @if($criterias->isEmpty())
     <div class="alert alert-warning modern-alert" role="alert">
         <i class="bi bi-exclamation-triangle me-2"></i>
-        No criteria available. Please <a href="{{ route('criteria.create', ['case' => $case->id]) }}" class="alert-link">create criteria</a> first before adding alternatives.
+        No criteria available. 
+        @if(Auth::user()->isAdmin())
+            Please <a href="{{ route('criteria.create') }}" class="alert-link">create criteria</a> first before adding alternatives.
+        @else
+            Please contact your administrator to add criteria before creating alternatives.
+        @endif
     </div>
 @else
 
@@ -36,7 +41,7 @@
             Basic Information
         </h3>
         
-        <form method="POST" action="{{ isset($alternative->id) ? route('alternatives.update', ['case' => $case->id, 'alternative' => $alternative->id]) : route('alternatives.store', ['case' => $case->id]) }}" class="modern-form" id="alternativeForm">
+        <form method="POST" action="{{ isset($alternative->id) ? route('alternatives.update', ['alternative' => $alternative->id]) : route('alternatives.store') }}" class="modern-form" id="alternativeForm">
             @csrf
             @if(isset($alternative->id))
                 @method('PUT')
@@ -86,7 +91,7 @@
                     <i class="bi bi-save"></i>
                     {{ $alternative->id ? 'Update Alternative' : 'Create Alternative' }}
                 </button>
-                <a href="{{ route('alternatives.index', ['case' => $case->id]) }}" class="btn-modern btn-secondary-modern">
+                <a href="{{ route('alternatives.index') }}" class="btn-modern btn-secondary-modern">
                     <i class="bi bi-x"></i>
                     Cancel
                 </a>
@@ -99,7 +104,17 @@
         <h3 class="section-title">
             <i class="bi bi-sliders"></i>
             Criteria Values
+            @if(Auth::user()->isUser())
+                <small class="text-muted">(Values for available criteria)</small>
+            @endif
         </h3>
+        
+        @if(Auth::user()->isUser())
+            <div class="alert alert-info alert-sm" role="alert">
+                <i class="bi bi-info-circle me-2"></i>
+                These criteria were defined by administrators. Enter values for each criterion.
+            </div>
+        @endif
         
         <div class="criteria-grid">
             @foreach($criterias as $criteria)
@@ -123,6 +138,11 @@
                 <div class="criteria-input">
                     <label for="criteria_{{ $criteria->id }}" class="input-label">
                         Value <span class="required">*</span>
+                        @if($criteria->type === 'benefit')
+                            <small class="text-success">(Higher is better)</small>
+                        @else
+                            <small class="text-danger">(Lower is better)</small>
+                        @endif
                     </label>
                     <input type="number" 
                            step="0.01" 
@@ -152,6 +172,12 @@
                     <small class="function-text">
                         <i class="bi bi-diagram-3"></i>
                         {{ \App\Models\Criteria::preferenceFunctions()[$criteria->preference_function] ?? $criteria->preference_function }}
+                        @if($criteria->p || $criteria->q)
+                            <span class="function-params">
+                                @if($criteria->p) | p: {{ $criteria->p }} @endif
+                                @if($criteria->q) | q: {{ $criteria->q }} @endif
+                            </span>
+                        @endif
                     </small>
                 </div>
             </div>
@@ -171,13 +197,22 @@
                 </div>
                 <div class="stat-item">
                     <span class="stat-label">Benefit Criteria</span>
-                    <span class="stat-value">{{ $criterias->where('type', 'benefit')->count() }}</span>
+                    <span class="stat-value benefit">{{ $criterias->where('type', 'benefit')->count() }}</span>
                 </div>
                 <div class="stat-item">
                     <span class="stat-label">Cost Criteria</span>
-                    <span class="stat-value">{{ $criterias->where('type', 'cost')->count() }}</span>
+                    <span class="stat-value cost">{{ $criterias->where('type', 'cost')->count() }}</span>
                 </div>
             </div>
+            
+            @if(Auth::user()->isUser())
+                <div class="summary-note">
+                    <small class="text-muted">
+                        <i class="bi bi-lightbulb"></i>
+                        <strong>Tip:</strong> For benefit criteria, higher values indicate better performance. For cost criteria, lower values are preferred.
+                    </small>
+                </div>
+            @endif
         </div>
     </div>
 </div>

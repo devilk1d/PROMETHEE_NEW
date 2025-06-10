@@ -298,6 +298,142 @@
     margin-bottom: 1.5rem;
 }
 
+/* Quick Actions Styles - Add this to your existing style.css */
+
+.action-card {
+    background: var(--white);
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--gray-100);
+    transition: var(--transition);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+}
+
+.action-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
+}
+
+.action-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    color: white;
+}
+
+.action-icon-primary {
+    background: linear-gradient(135deg, var(--primary-500) 0%, var(--primary-600) 100%);
+}
+
+.action-icon-success {
+    background: linear-gradient(135deg, var(--emerald-500) 0%, #059669 100%);
+}
+
+.action-icon-warning {
+    background: linear-gradient(135deg, var(--amber-500) 0%, #d97706 100%);
+}
+
+.action-icon-info {
+    background: linear-gradient(135deg, var(--blue-500) 0%, #2563eb 100%);
+}
+
+.action-content {
+    flex: 1;
+    margin-bottom: 1rem;
+}
+
+.action-content h4 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--gray-900);
+    margin-bottom: 0.5rem;
+}
+
+.action-content p {
+    color: var(--gray-500);
+    font-size: 0.875rem;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.action-footer {
+    margin-top: auto;
+}
+
+/* Button variants for action cards */
+.btn-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+}
+
+.btn-success-modern {
+    background: linear-gradient(135deg, var(--emerald-500) 0%, #059669 100%);
+    color: white;
+    box-shadow: var(--shadow);
+}
+
+.btn-success-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+    color: white;
+}
+
+.btn-warning-modern {
+    background: linear-gradient(135deg, var(--amber-500) 0%, #d97706 100%);
+    color: white;
+    box-shadow: var(--shadow);
+}
+
+.btn-warning-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+    color: white;
+}
+
+.btn-info-modern {
+    background: linear-gradient(135deg, var(--blue-500) 0%, #2563eb 100%);
+    color: white;
+    box-shadow: var(--shadow);
+}
+
+.btn-info-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+    color: white;
+}
+
+.btn-secondary-modern {
+    background: linear-gradient(135deg, var(--gray-500) 0%, var(--gray-600) 100%);
+    color: white;
+    box-shadow: var(--shadow);
+}
+
+.btn-secondary-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+    color: white;
+}
+
+@media (max-width: 768px) {
+    .action-card {
+        text-align: center;
+    }
+    
+    .action-icon {
+        margin: 0 auto 1rem auto;
+    }
+}
+
 @media (max-width: 768px) {
     .main-header {
         flex-direction: column;

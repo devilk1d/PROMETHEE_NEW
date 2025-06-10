@@ -26,7 +26,7 @@ class AuthenticatedSessionController extends Controller
     {
         $request->authenticate();
 
-        $request->session()->regenerate();
+        $request->session()->regenerate(); // Regenerate session ID
 
         return redirect()->intended(route('home', absolute: false));
     }
@@ -38,9 +38,9 @@ class AuthenticatedSessionController extends Controller
     {
         Auth::guard('web')->logout();
 
-        $request->session()->invalidate();
+        $request->session()->invalidate();          // Invalidate session
 
-        $request->session()->regenerateToken();
+        $request->session()->regenerateToken();     // Regenerate CSRF token
 
         return redirect('/');
     }

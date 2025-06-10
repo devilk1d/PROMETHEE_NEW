@@ -14,7 +14,7 @@ class Decision extends Model
         'description', 
         'result_data', 
         'selected_alternatives',
-        'case_id'
+        'user_id'
     ];
 
     protected $casts = [
@@ -22,9 +22,9 @@ class Decision extends Model
         'selected_alternatives' => 'array'
     ];
 
-    public function case()
+    public function user()
     {
-        return $this->belongsTo(Cases::class, 'case_id');
+        return $this->belongsTo(User::class);
     }
 
     public function getRankingAttribute()

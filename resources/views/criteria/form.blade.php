@@ -10,10 +10,10 @@
 <div class="main-header">
     <div>
         <h1 class="main-title">{{ $criterion->id ? 'Edit' : 'Create' }} Criteria</h1>
-        <p class="main-subtitle">{{ $case->name }} - Define evaluation criteria for PROMETHEE analysis</p>
+        <p class="main-subtitle">Define evaluation criteria for PROMETHEE analysis</p>
     </div>
     <div class="header-actions">
-        <a href="{{ route('criteria.index', ['case' => $case->id]) }}" class="btn-modern btn-secondary-modern">
+        <a href="{{ route('criteria.index') }}" class="btn-modern btn-secondary-modern">
             <i class="bi bi-arrow-left"></i>
             Back to Criteria
         </a>
@@ -22,7 +22,7 @@
 
 <!-- Form Card -->
 <div class="content-card">
-    <form method="POST" action="{{ $criterion->id ? route('criteria.update', ['case' => $case->id, 'criterion' => $criterion->id]) : route('criteria.store', ['case' => $case->id]) }}" class="modern-form">
+    <form method="POST" action="{{ $criterion->id ? route('criteria.update', ['criterion' => $criterion->id]) : route('criteria.store') }}" class="modern-form">
         @csrf
         @if($criterion->id)
             @method('PUT')
@@ -243,7 +243,7 @@
                     <i class="bi bi-save"></i>
                     {{ $criterion->id ? 'Update Criteria' : 'Create Criteria' }}
                 </button>
-                <a href="{{ route('criteria.index', ['case' => $case->id]) }}" class="btn-modern btn-secondary-modern">
+                <a href="{{ route('criteria.index') }}" class="btn-modern btn-secondary-modern">
                     <i class="bi bi-x"></i>
                     Cancel
                 </a>
