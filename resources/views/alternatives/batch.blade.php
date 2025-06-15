@@ -95,6 +95,11 @@
                                         <i class="bi bi-{{ $criteria->type === 'benefit' ? 'arrow-up' : 'arrow-down' }}"></i>
                                         {{ ucfirst($criteria->type) }}
                                     </span>
+                                    <div class="form-check form-switch criteria-toggle">
+                                        <input class="form-check-input" type="checkbox" id="criteriaToggle{{ $criteria->id }}" 
+                                               data-criteria-id="{{ $criteria->id }}" checked>
+                                        <label class="form-check-label visually-hidden" for="criteriaToggle{{ $criteria->id }}">Toggle {{ $criteria->name }}</label>
+                                    </div>
                                 </div>
                             </th>
                         @endforeach
@@ -120,14 +125,16 @@
                                       placeholder="Description">{{ $alternative->description }}</textarea>
                         </td>
                         @foreach($criterias as $criteria)
-                            <td>
+                            <td class="criteria-cell criteria-id-{{ $criteria->id }}">
+                                <div class="criteria-input-wrapper">
                                 <input type="number" 
                                        step="0.01" 
                                        class="form-control table-input criteria-input" 
                                        name="alternatives[{{ $index }}][criteria_values][{{ $criteria->id }}]" 
                                        value="{{ $alternative->getCriteriaValue($criteria->id) }}"
                                        placeholder="0.00">
-                                <input type="hidden" name="alternatives[{{ $index }}][selected_criteria][{{ $criteria->id }}]" value="1">
+                                <input type="hidden" class="selected-criteria-input" name="alternatives[{{ $index }}][selected_criteria][{{ $criteria->id }}]" value="1">
+                                </div>
                             </td>
                         @endforeach
                         <td>
@@ -156,14 +163,16 @@
                                       placeholder="Description"></textarea>
                         </td>
                         @foreach($criterias as $criteria)
-                            <td>
+                            <td class="criteria-cell criteria-id-{{ $criteria->id }}">
+                                <div class="criteria-input-wrapper">
                                 <input type="number" 
                                        step="0.01" 
                                        class="form-control table-input criteria-input" 
                                        name="alternatives[0][criteria_values][{{ $criteria->id }}]" 
                                        value="0"
                                        placeholder="0.00">
-                                <input type="hidden" name="alternatives[0][selected_criteria][{{ $criteria->id }}]" value="1">
+                                <input type="hidden" class="selected-criteria-input" name="alternatives[0][selected_criteria][{{ $criteria->id }}]" value="1">
+                                </div>
                             </td>
                         @endforeach
                         <td>

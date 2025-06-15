@@ -24,28 +24,28 @@ class Alternative extends Model
     // Get specific criteria value for this alternative
     public function getCriteriaValue($criteriaId)
     {
-        $criteriaValue = $this->criteriaValues->where('criteria_id', $criteriaId)->first();
-        return $criteriaValue ? $criteriaValue->value : 0;
+        $criteriaValue = $this->criteriaValues()->where('criteria_id', $criteriaId)->first();
+        return $criteriaValue && $criteriaValue->is_selected ? $criteriaValue->value : 0;
     }
 
-    // Check if alternative has specific criteria
+    // Check if alternative has specific criteria and it is selected
     public function hasCriteria($criteriaId)
     {
-        return $this->criteriaValues->where('criteria_id', $criteriaId)->isNotEmpty();
+        return $this->criteriaValues()->where('criteria_id', $criteriaId)->where('is_selected', true)->exists();
     }
 
     // Add or update criteria value
-    public function setCriteriaValue($criteriaId, $value)
+    public function setCriteriaValue($criteriaId, $value, $isSelected = true)
     {
         return $this->criteriaValues()->updateOrCreate(
             ['criteria_id' => $criteriaId],
-            ['value' => $value]
+            ['value' => $value, 'is_selected' => $isSelected]
         );
     }
 
-    // Get all criteria IDs associated with this alternative
+    // Get all criteria IDs associated with this alternative (only selected ones)
     public function getCriteriaIds()
     {
-        return $this->criteriaValues->pluck('criteria_id')->toArray();
+        return $this->criteriaValues()->where('is_selected', true)->pluck('criteria_id')->toArray();
     }
 }

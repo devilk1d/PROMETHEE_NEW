@@ -133,9 +133,17 @@
                             </span>
                         </div>
                     </div>
+                    @if(Auth::user()->isAdmin())
+                    <div class="form-check form-switch criteria-toggle">
+                        <input class="form-check-input" type="checkbox" id="criteriaToggle{{ $criteria->id }}" 
+                               data-criteria-id="{{ $criteria->id }}" 
+                               {{ old('selected_criteria.'.$criteria->id, isset($alternative) && $alternative->hasCriteria($criteria->id) ? 'checked' : '') ? 'checked' : '' }}>
+                        <label class="form-check-label visually-hidden" for="criteriaToggle{{ $criteria->id }}">Toggle {{ $criteria->name }}</label>
+                    </div>
+                    @endif
                 </div>
                 
-                <div class="criteria-input">
+                <div class="criteria-input-wrapper" style="{{ old('selected_criteria.'.$criteria->id, isset($alternative) && $alternative->hasCriteria($criteria->id) ? '' : 'display: none;') }}">
                     <label for="criteria_{{ $criteria->id }}" class="input-label">
                         Value <span class="required">*</span>
                         @if($criteria->type === 'benefit')
@@ -152,8 +160,8 @@
                            value="{{ old('criteria_values.'.$criteria->id, $alternative->getCriteriaValue($criteria->id)) }}"
                            placeholder="Enter value"
                            form="alternativeForm"
-                           required>
-                    <input type="hidden" name="selected_criteria[{{ $criteria->id }}]" value="1" form="alternativeForm">
+                           {{ old('selected_criteria.'.$criteria->id, isset($alternative) && $alternative->hasCriteria($criteria->id) ? '' : 'disabled') ? '' : 'disabled' }}>
+                    <input type="hidden" class="selected-criteria-input" name="selected_criteria[{{ $criteria->id }}]" value="{{ old('selected_criteria.'.$criteria->id, isset($alternative) && $alternative->hasCriteria($criteria->id) ? '1' : '0') }}" form="alternativeForm">
                     @error('criteria_values.'.$criteria->id)
                         <div class="error-message">
                             <i class="bi bi-exclamation-circle"></i>
@@ -163,12 +171,12 @@
                 </div>
 
                 @if($criteria->description)
-                <div class="criteria-description">
+                <div class="criteria-description" style="{{ old('selected_criteria.'.$criteria->id, isset($alternative) && $alternative->hasCriteria($criteria->id) ? '' : 'display: none;') }}">
                     <p>{{ $criteria->description }}</p>
                 </div>
                 @endif
 
-                <div class="criteria-function">
+                <div class="criteria-function" style="{{ old('selected_criteria.'.$criteria->id, isset($alternative) && $alternative->hasCriteria($criteria->id) ? '' : 'display: none;') }}">
                     <small class="function-text">
                         <i class="bi bi-diagram-3"></i>
                         {{ \App\Models\Criteria::preferenceFunctions()[$criteria->preference_function] ?? $criteria->preference_function }}
@@ -218,5 +226,44 @@
 </div>
 
 @endif
+
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.criteria-toggle input[type="checkbox"]').forEach(toggle => {
+            toggle.addEventListener('change', function() {
+                const criteriaId = this.dataset.criteriaId;
+                const isChecked = this.checked;
+                const criteriaCard = this.closest('.criteria-card');
+
+                const wrapper = criteriaCard.querySelector('.criteria-input-wrapper');
+                const criteriaInput = wrapper.querySelector('.criteria-value');
+                const selectedCriteriaInput = wrapper.querySelector('.selected-criteria-input');
+                const descriptionDiv = criteriaCard.querySelector('.criteria-description');
+                const functionDiv = criteriaCard.querySelector('.criteria-function');
+
+                if (wrapper) {
+                    wrapper.style.display = isChecked ? '' : 'none';
+                    if (criteriaInput) {
+                        criteriaInput.disabled = !isChecked;
+                        if (!isChecked) {
+                            criteriaInput.value = '0'; // Clear value if unchecked
+                        }
+                    }
+                    if (selectedCriteriaInput) {
+                        selectedCriteriaInput.value = isChecked ? '1' : '0';
+                    }
+                    if (descriptionDiv) {
+                        descriptionDiv.style.display = isChecked ? '' : 'none';
+                    }
+                    if (functionDiv) {
+                        functionDiv.style.display = isChecked ? '' : 'none';
+                    }
+                }
+            });
+        });
+    });
+</script>
+@endpush
 
 @endsection

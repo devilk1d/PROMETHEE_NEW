@@ -17,31 +17,25 @@ class PrometheeService
             // Validate input data
             $this->validateInputData($alternatives, $criterias);
             
-            // 1. Build decision matrix
+            // 1. Build decision matrix and normalize if needed
             $decisionMatrix = $this->buildDecisionMatrix($alternatives, $criterias);
             
-            // 2. Normalize decision matrix (if needed)
-            $normalizedMatrix = $this->normalizeDecisionMatrix($decisionMatrix, $criterias);
+            // 2. Calculate preference matrix for each criterion
+            $preferenceMatrices = $this->calculatePreferenceMatrices($decisionMatrix, $alternatives, $criterias);
             
-            // 3. Calculate preference matrix for each criterion
-            $preferenceMatrices = $this->calculatePreferenceMatrices($normalizedMatrix, $alternatives, $criterias);
-            
-            // 4. Calculate global preference matrix (aggregated with weights)
+            // 3. Calculate global preference matrix (aggregated with weights)
             $globalPreference = $this->calculateGlobalPreference($preferenceMatrices, $criterias);
             
-            // 5. Calculate PROMETHEE flows
+            // 4. Calculate PROMETHEE flows
             $flows = $this->calculateFlows($globalPreference, $alternatives);
             
-            // 6. Generate final ranking
+            // 5. Generate final ranking
             $ranking = $this->generateRanking($flows, $alternatives);
             
             return [
-                'decision_matrix' => $decisionMatrix,
-                'normalized_matrix' => $normalizedMatrix,
-                'preference_matrices' => $preferenceMatrices,
-                'global_preference_matrix' => $globalPreference,
                 'flows' => $flows,
                 'ranking' => $ranking,
+                'decision_matrix' => $decisionMatrix,
                 'metadata' => [
                     'alternatives_count' => count($alternatives),
                     'criteria_count' => count($criterias),
@@ -69,10 +63,11 @@ class PrometheeService
         }
         
         $totalWeight = $criterias->sum('weight');
-        if (abs($totalWeight - 1.0) > 0.0001) { // Check if weights sum to ~1
-            throw new \Exception('Total weight of criteria must sum to 1');
+        if ($totalWeight <= 0) {
+            throw new \Exception('Total weight of criteria must be greater than 0');
         }
         
+        // Check if all alternatives have values for all criteria
         foreach ($alternatives as $alternative) {
             foreach ($criterias as $criteria) {
                 $value = $alternative->getCriteriaValue($criteria->id);
@@ -101,53 +96,9 @@ class PrometheeService
     }
 
     /**
-     * Normalize decision matrix based on criteria type
-     */
-    private function normalizeDecisionMatrix($decisionMatrix, $criterias)
-    {
-        $normalizedMatrix = [];
-        $minMaxValues = [];
-        
-        // First find min and max values for each criterion
-        foreach ($criterias as $criteria) {
-            $values = array_column($decisionMatrix, $criteria->id);
-            $minMaxValues[$criteria->id] = [
-                'min' => min($values),
-                'max' => max($values)
-            ];
-        }
-        
-        // Then normalize each value
-        foreach ($decisionMatrix as $altId => $criteriaValues) {
-            foreach ($criteriaValues as $criteriaId => $value) {
-                $criteria = $criterias->firstWhere('id', $criteriaId);
-                $min = $minMaxValues[$criteriaId]['min'];
-                $max = $minMaxValues[$criteriaId]['max'];
-                $range = $max - $min;
-                
-                if ($range == 0) {
-                    // Avoid division by zero - all values are same
-                    $normalizedMatrix[$altId][$criteriaId] = 1.0;
-                    continue;
-                }
-                
-                if ($criteria->type === 'benefit') {
-                    // For benefit criteria: (value - min) / (max - min)
-                    $normalizedMatrix[$altId][$criteriaId] = ($value - $min) / $range;
-                } else {
-                    // For cost criteria: (max - value) / (max - min)
-                    $normalizedMatrix[$altId][$criteriaId] = ($max - $value) / $range;
-                }
-            }
-        }
-        
-        return $normalizedMatrix;
-    }
-
-    /**
      * Calculate preference matrices for each criterion
      */
-    private function calculatePreferenceMatrices($normalizedMatrix, $alternatives, $criterias)
+    private function calculatePreferenceMatrices($decisionMatrix, $alternatives, $criterias)
     {
         $preferenceMatrices = [];
 
@@ -162,11 +113,11 @@ class PrometheeService
                         continue;
                     }
                     
-                    $valueA = $normalizedMatrix[$altA->id][$criteria->id];
-                    $valueB = $normalizedMatrix[$altB->id][$criteria->id];
+                    $valueA = $decisionMatrix[$altA->id][$criteria->id];
+                    $valueB = $decisionMatrix[$altB->id][$criteria->id];
                     
-                    // Calculate deviation (d)
-                    $deviation = $valueA - $valueB;
+                    // Calculate deviation based on criterion type
+                    $deviation = $this->calculateDeviation($valueA, $valueB, $criteria->type);
                     
                     // Apply preference function
                     $preference = $this->applyPreferenceFunction(
@@ -187,6 +138,20 @@ class PrometheeService
     }
 
     /**
+     * Calculate deviation between two values based on criterion type
+     */
+    private function calculateDeviation($valueA, $valueB, $criterionType)
+    {
+        if ($criterionType === 'benefit') {
+            // For benefit criteria: higher is better
+            return $valueA - $valueB;
+        } else {
+            // For cost criteria: lower is better
+            return $valueB - $valueA;
+        }
+    }
+
+    /**
      * Apply preference function to calculate preference degree
      */
     private function applyPreferenceFunction($deviation, $functionType, $p = 0, $q = 0)
@@ -198,16 +163,16 @@ class PrometheeService
         
         switch ($functionType) {
             case Criteria::PREFERENCE_USUAL:
-                // Type I: Usual criterion (0-1)
-                return $deviation > 0 ? 1 : 0;
+                // Type I: Usual criterion
+                return 1;
                 
             case Criteria::PREFERENCE_QUASI:
                 // Type II: Quasi criterion (U-shape)
                 return $deviation > $q ? 1 : 0;
                 
             case Criteria::PREFERENCE_LINEAR:
-                // Type III: Linear preference (V-shape)
-                if ($p <= 0) return 1;
+                // Type III: Linear criterion (V-shape)
+                if ($p <= 0) return 1; // Avoid division by zero
                 return min(1, $deviation / $p);
                 
             case Criteria::PREFERENCE_LEVEL:
@@ -217,14 +182,15 @@ class PrometheeService
                 return 0.5;
                 
             case Criteria::PREFERENCE_LINEAR_QUASI:
-                // Type V: Linear with indifference area
+                // Type V: Linear criterion with indifference area
                 if ($deviation <= $q) return 0;
                 if ($deviation >= $p) return 1;
+                if ($p <= $q) return 1; // Avoid division by zero
                 return ($deviation - $q) / ($p - $q);
                 
             case Criteria::PREFERENCE_GAUSSIAN:
                 // Type VI: Gaussian criterion
-                if ($p <= 0) return 1;
+                if ($p <= 0) return 1; // Avoid division by zero
                 return 1 - exp(-($deviation * $deviation) / (2 * $p * $p));
                 
             default:
@@ -238,23 +204,27 @@ class PrometheeService
     private function calculateGlobalPreference($preferenceMatrices, $criterias)
     {
         $globalMatrix = [];
+        $totalWeight = $criterias->sum('weight');
         
-        // Initialize global matrix with zeros
-        $firstMatrix = reset($preferenceMatrices);
-        foreach (array_keys($firstMatrix) as $altA) {
-            foreach (array_keys($firstMatrix[$altA]) as $altB) {
-                $globalMatrix[$altA][$altB] = 0;
+        // Initialize global matrix
+        foreach ($preferenceMatrices as $criteriaId => $matrix) {
+            foreach ($matrix as $altA => $preferences) {
+                foreach ($preferences as $altB => $preference) {
+                    if (!isset($globalMatrix[$altA][$altB])) {
+                        $globalMatrix[$altA][$altB] = 0;
+                    }
+                }
             }
         }
         
         // Aggregate preferences with weights
         foreach ($preferenceMatrices as $criteriaId => $matrix) {
             $criteria = $criterias->firstWhere('id', $criteriaId);
-            $weight = $criteria->weight;
+            $normalizedWeight = $criteria->weight / $totalWeight;
             
             foreach ($matrix as $altA => $preferences) {
                 foreach ($preferences as $altB => $preference) {
-                    $globalMatrix[$altA][$altB] += $weight * $preference;
+                    $globalMatrix[$altA][$altB] += $normalizedWeight * $preference;
                 }
             }
         }
@@ -273,13 +243,18 @@ class PrometheeService
         foreach ($alternatives as $alternative) {
             $altId = $alternative->id;
             
-            // Calculate positive flow (φ+) - sum of outgoing flows
-            $positiveFlow = array_sum($globalMatrix[$altId]) / ($n - 1);
+            // Calculate positive flow (φ+) - outgoing flows
+            $positiveFlow = 0;
+            if (isset($globalMatrix[$altId])) {
+                $positiveFlow = array_sum($globalMatrix[$altId]) / ($n - 1);
+            }
             
-            // Calculate negative flow (φ-) - sum of incoming flows
+            // Calculate negative flow (φ-) - incoming flows
             $negativeFlow = 0;
             foreach ($globalMatrix as $fromAltId => $preferences) {
-                $negativeFlow += $preferences[$altId] ?? 0;
+                if (isset($preferences[$altId]) && $fromAltId !== $altId) {
+                    $negativeFlow += $preferences[$altId];
+                }
             }
             $negativeFlow = $negativeFlow / ($n - 1);
             
@@ -301,6 +276,7 @@ class PrometheeService
      */
     private function generateRanking($flows, $alternatives)
     {
+        // Create ranking data with alternative information
         $rankingData = [];
         
         foreach ($alternatives as $alternative) {
@@ -316,17 +292,29 @@ class PrometheeService
             ];
         }
         
-        // Sort by net flow (descending), then positive flow (descending), then negative flow (ascending)
+        // Sort by PROMETHEE ranking rules:
+        // 1. Net flow (descending)
+        // 2. Positive flow (descending) - for tie-breaking
+        // 3. Negative flow (ascending) - for tie-breaking
+        // 4. Name (ascending) - for final tie-breaking
         usort($rankingData, function($a, $b) {
-            if (abs($a['net_flow'] - $b['net_flow']) > 0.000001) {
+            // Primary: Net flow (higher is better)
+            if (abs($a['net_flow'] - $b['net_flow']) > 1e-6) {
                 return $b['net_flow'] <=> $a['net_flow'];
             }
             
-            if (abs($a['positive_flow'] - $b['positive_flow']) > 0.000001) {
+            // Secondary: Positive flow (higher is better)
+            if (abs($a['positive_flow'] - $b['positive_flow']) > 1e-6) {
                 return $b['positive_flow'] <=> $a['positive_flow'];
             }
             
-            return $a['negative_flow'] <=> $b['negative_flow'];
+            // Tertiary: Negative flow (lower is better)
+            if (abs($a['negative_flow'] - $b['negative_flow']) > 1e-6) {
+                return $a['negative_flow'] <=> $b['negative_flow'];
+            }
+            
+            // Final: Name (alphabetical)
+            return strcmp($a['name'], $b['name']);
         });
         
         // Convert to final ranking format with ranks
@@ -342,5 +330,32 @@ class PrometheeService
         }
         
         return $ranking;
+    }
+
+    /**
+     * Get detailed analysis for debugging purposes
+     */
+    public function getDetailedAnalysis($alternatives, $criterias)
+    {
+        $decisionMatrix = $this->buildDecisionMatrix($alternatives, $criterias);
+        $preferenceMatrices = $this->calculatePreferenceMatrices($decisionMatrix, $alternatives, $criterias);
+        $globalPreference = $this->calculateGlobalPreference($preferenceMatrices, $criterias);
+        
+        return [
+            'decision_matrix' => $decisionMatrix,
+            'preference_matrices' => $preferenceMatrices,
+            'global_preference' => $globalPreference,
+            'criteria_info' => $criterias->map(function($c) {
+                return [
+                    'id' => $c->id,
+                    'name' => $c->name,
+                    'type' => $c->type,
+                    'weight' => $c->weight,
+                    'preference_function' => $c->preference_function,
+                    'p' => $c->p,
+                    'q' => $c->q
+                ];
+            })
+        ];
     }
 }

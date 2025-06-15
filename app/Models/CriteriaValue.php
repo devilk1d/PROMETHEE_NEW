@@ -9,7 +9,7 @@ class CriteriaValue extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['alternative_id', 'criteria_id', 'value'];
+    protected $fillable = ['alternative_id', 'criteria_id', 'value', 'is_selected'];
 
     public function alternative()
     {

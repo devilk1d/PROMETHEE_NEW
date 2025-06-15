@@ -202,9 +202,16 @@
                                     </div>
                                 </td>
                                 @foreach($criterias as $criteria)
-                                    <td class="matrix-value">
-                                        <span class="value-number">{{ $alternative->getCriteriaValue($criteria->id) }}</span>
-                                    </td>
+                                    @php
+                                        $alternativeCriteria = $alternative->criteriaValues->where('criteria_id', $criteria->id)->first();
+                                    @endphp
+                                    @if($alternativeCriteria && $alternativeCriteria->is_selected)
+                                        <td class="matrix-value">
+                                            <span class="value-number">{{ $alternativeCriteria->value }}</span>
+                                        </td>
+                                    @else
+                                        <td>-</td> {{-- Display a dash or empty if not selected --}}
+                                    @endif
                                 @endforeach
                             </tr>
                             @endforeach

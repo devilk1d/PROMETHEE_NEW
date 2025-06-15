@@ -48,7 +48,7 @@
             </h3>
             
             <div class="rankings-list">
-                @foreach($decision->ranking as $altId => $data)
+                @foreach($decision->ranking as $data)
                 <div class="ranking-item rank-{{ $loop->iteration }}">
                     <div class="ranking-position">
                         <span class="position-number">{{ $loop->iteration }}</span>
@@ -75,13 +75,13 @@
                             <div class="flow-item">
                                 <span class="flow-label">Positive Flow</span>
                                 <span class="flow-value positive-flow">
-                                    {{ number_format($decision->flows[$altId]['positive'], 4) }}
+                                    {{ number_format($decision->flows[$data['id']]['positive'], 4) }}
                                 </span>
                             </div>
                             <div class="flow-item">
                                 <span class="flow-label">Negative Flow</span>
                                 <span class="flow-value negative-flow">
-                                    {{ number_format($decision->flows[$altId]['negative'], 4) }}
+                                    {{ number_format($decision->flows[$data['id']]['negative'], 4) }}
                                 </span>
                             </div>
                         </div>
@@ -143,7 +143,7 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach($decision->ranking as $altId => $data)
+                @foreach($decision->ranking as $data)
                 <tr class="table-row rank-{{ $loop->iteration }}">
                     <td class="rank-cell">
                         <div class="rank-display">
@@ -163,12 +163,12 @@
                     </td>
                     <td class="flow-cell">
                         <span class="flow-value positive">
-                            {{ number_format($decision->flows[$altId]['positive'], 4) }}
+                            {{ number_format($decision->flows[$data['id']]['positive'], 4) }}
                         </span>
                     </td>
                     <td class="flow-cell">
                         <span class="flow-value negative">
-                            {{ number_format($decision->flows[$altId]['negative'], 4) }}
+                            {{ number_format($decision->flows[$data['id']]['negative'], 4) }}
                         </span>
                     </td>
                     <td class="status-cell">

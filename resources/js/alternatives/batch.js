@@ -30,6 +30,12 @@ function initializeBatchAlternatives() {
     
     // Add event listeners for existing delete buttons
     setupDeleteButtons();
+
+    // Setup criteria toggle buttons for existing rows and headers
+    setupCriteriaToggles();
+
+    // Apply initial visibility based on header toggles
+    applyInitialCriteriaVisibility();
 }
 
 function addAlternativeRow() {
@@ -43,12 +49,17 @@ function addAlternativeRow() {
     // Generate criteria inputs
     let criteriaInputs = '';
     criterias.forEach(criteria => {
+        const isCriteriaSelected = document.getElementById(`criteriaToggle${criteria.id}`).checked;
+        const displayStyle = isCriteriaSelected ? '' : 'display: none;';
+        const selectedValue = isCriteriaSelected ? '1' : '0';
         criteriaInputs += `
-            <td>
-                <input type="number" step="0.01" class="form-control table-input criteria-input" 
-                       name="alternatives[${alternativeCounter}][criteria_values][${criteria.id}]" 
-                       value="0" placeholder="0.00">
-                <input type="hidden" name="alternatives[${alternativeCounter}][selected_criteria][${criteria.id}]" value="1">
+            <td class="criteria-cell criteria-id-${criteria.id}">
+                <div class="criteria-input-wrapper" style="${displayStyle}">
+                    <input type="number" step="0.01" class="form-control table-input criteria-input" 
+                           name="alternatives[${alternativeCounter}][criteria_values][${criteria.id}]" 
+                           value="0" placeholder="0.00">
+                    <input type="hidden" class="selected-criteria-input" name="alternatives[${alternativeCounter}][selected_criteria][${criteria.id}]" value="${selectedValue}">
+                </div>
             </td>
         `;
     });
@@ -104,6 +115,49 @@ function handleDeleteRow(event) {
     
     // Remove the row
     row.remove();
+}
+
+function setupCriteriaToggles() {
+    document.querySelectorAll('.criteria-toggle input[type="checkbox"]').forEach(toggle => {
+        toggle.removeEventListener('change', handleCriteriaToggle);
+        toggle.addEventListener('change', handleCriteriaToggle);
+    });
+}
+
+function handleCriteriaToggle(event) {
+    const toggle = event.currentTarget;
+    const criteriaId = toggle.dataset.criteriaId;
+    const isChecked = toggle.checked;
+
+    // Select all cells for this criteria across all rows
+    document.querySelectorAll(`.criteria-cell.criteria-id-${criteriaId}`).forEach(cell => {
+        const wrapper = cell.querySelector('.criteria-input-wrapper');
+        const criteriaInput = cell.querySelector('.criteria-input');
+        const selectedCriteriaInput = cell.querySelector('.selected-criteria-input');
+
+        if (wrapper && selectedCriteriaInput) {
+            wrapper.style.display = isChecked ? '' : 'none';
+            selectedCriteriaInput.value = isChecked ? '1' : '0';
+            
+            // Clear value if unchecked to prevent sending data for unselected criteria
+            if (!isChecked && criteriaInput) {
+                criteriaInput.value = '0'; 
+            }
+        }
+    });
+}
+
+function applyInitialCriteriaVisibility() {
+    document.querySelectorAll('.criteria-toggle input[type="checkbox"]').forEach(toggle => {
+        const criteriaId = toggle.dataset.criteriaId;
+        const isChecked = toggle.checked;
+        document.querySelectorAll(`.criteria-cell.criteria-id-${criteriaId}`).forEach(cell => {
+            const wrapper = cell.querySelector('.criteria-input-wrapper');
+            if (wrapper) {
+                wrapper.style.display = isChecked ? '' : 'none';
+            }
+        });
+    });
 }
 
 // Remove the global function as we're not using onclick anymore

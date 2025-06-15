@@ -38,7 +38,9 @@ class AlternativeController extends Controller
             'name' => 'required|string|max:255|unique:alternatives,name',
             'description' => 'nullable|string',
             'criteria_values' => 'required|array',
-            'criteria_values.*' => 'required|numeric'
+            'criteria_values.*' => 'required|numeric',
+            'selected_criteria' => 'nullable|array',
+            'selected_criteria.*' => 'boolean',
         ]);
 
         $alternative = Alternative::create([
@@ -47,18 +49,9 @@ class AlternativeController extends Controller
             'user_id' => Auth::id()
         ]);
 
-        // Get all criteria IDs
-        $allCriteriaIds = Criteria::pluck('id')->toArray();
-            
         foreach ($validated['criteria_values'] as $criteriaId => $value) {
-            // Only use existing criteria
-            if (in_array($criteriaId, $allCriteriaIds)) {
-                CriteriaValue::create([
-                    'alternative_id' => $alternative->id,
-                    'criteria_id' => $criteriaId,
-                    'value' => $value
-                ]);
-            }
+            $isSelected = isset($validated['selected_criteria'][$criteriaId]) ? (bool)$validated['selected_criteria'][$criteriaId] : false;
+            $alternative->setCriteriaValue($criteriaId, $value, $isSelected);
         }
 
         return redirect()->route('alternatives.index')
@@ -89,7 +82,9 @@ class AlternativeController extends Controller
             'name' => 'required|string|max:255|unique:alternatives,name,'.$alternative->id,
             'description' => 'nullable|string',
             'criteria_values' => 'required|array',
-            'criteria_values.*' => 'required|numeric'
+            'criteria_values.*' => 'required|numeric',
+            'selected_criteria' => 'nullable|array',
+            'selected_criteria.*' => 'boolean',
         ]);
 
         $alternative->update([
@@ -97,18 +92,9 @@ class AlternativeController extends Controller
             'description' => $validated['description']
         ]);
 
-        $allCriteriaIds = Criteria::pluck('id')->toArray();
-            
         foreach ($validated['criteria_values'] as $criteriaId => $value) {
-            if (in_array($criteriaId, $allCriteriaIds)) {
-                CriteriaValue::updateOrCreate(
-                    [
-                        'alternative_id' => $alternative->id,
-                        'criteria_id' => $criteriaId
-                    ],
-                    ['value' => $value]
-                );
-            }
+            $isSelected = isset($validated['selected_criteria'][$criteriaId]) ? (bool)$validated['selected_criteria'][$criteriaId] : false;
+            $alternative->setCriteriaValue($criteriaId, $value, $isSelected);
         }
 
         return redirect()->route('alternatives.index')
@@ -145,26 +131,38 @@ class AlternativeController extends Controller
             'alternatives' => 'required|array',
             'alternatives.*.name' => 'required|string|max:255',
             'alternatives.*.description' => 'nullable|string',
+            'alternatives.*.criteria_values' => 'nullable|array',
+            'alternatives.*.criteria_values.*' => 'nullable|numeric',
+            'alternatives.*.selected_criteria' => 'nullable|array',
+            'alternatives.*.selected_criteria.*' => 'boolean',
         ]);
         
         foreach ($request->alternatives as $alternativeData) {
             $criteriaValues = $alternativeData['criteria_values'] ?? [];
             $selectedCriteria = $alternativeData['selected_criteria'] ?? [];
             
-            unset($alternativeData['criteria_values']);
-            unset($alternativeData['selected_criteria']);
-            
             if (isset($alternativeData['id'])) {
                 $alternative = Alternative::find($alternativeData['id']);
                 
                 if ($alternative && $alternative->user_id === Auth::id()) {
-                    $alternative->update($alternativeData);
-                    $this->updateCriteriaValues($alternative, $criteriaValues, $selectedCriteria);
+                    // Update basic alternative data
+                    $alternative->name = $alternativeData['name'];
+                    $alternative->description = $alternativeData['description'];
+                    $alternative->save();
+
+                    // Sync criteria values and selected status
+                    $this->syncCriteriaValues($alternative, $criteriaValues, $selectedCriteria);
                 }
             } else {
-                $alternativeData['user_id'] = Auth::id();
-                $alternative = Alternative::create($alternativeData);
-                $this->updateCriteriaValues($alternative, $criteriaValues, $selectedCriteria);
+                // Create new alternative
+                $alternative = Alternative::create([
+                    'name' => $alternativeData['name'],
+                    'description' => $alternativeData['description'],
+                    'user_id' => Auth::id()
+                ]);
+                
+                // Sync criteria values and selected status for new alternative
+                $this->syncCriteriaValues($alternative, $criteriaValues, $selectedCriteria);
             }
         }
         
@@ -178,19 +176,32 @@ class AlternativeController extends Controller
             ->with('success', 'Alternatives updated successfully.');
     }
 
-    private function updateCriteriaValues($alternative, $criteriaValues, $selectedCriteria)
+    private function syncCriteriaValues($alternative, $criteriaValues, $selectedCriteria)
     {
         $allCriteriaIds = Criteria::pluck('id')->toArray();
         
-        foreach ($criteriaValues as $criteriaId => $value) {
-            if (in_array($criteriaId, $allCriteriaIds)) {
-                CriteriaValue::updateOrCreate(
-                    [
-                        'alternative_id' => $alternative->id,
-                        'criteria_id' => $criteriaId
-                    ],
-                    ['value' => $value]
-                );
+        // Get existing criteria values for this alternative
+        $existingCriteriaValues = $alternative->criteriaValues->keyBy('criteria_id');
+
+        foreach ($allCriteriaIds as $criteriaId) {
+            $value = $criteriaValues[$criteriaId] ?? 0;
+            $isSelected = isset($selectedCriteria[$criteriaId]) && (bool)$selectedCriteria[$criteriaId];
+
+            if ($existingCriteriaValues->has($criteriaId)) {
+                // Update existing criteria value
+                $criteriaValue = $existingCriteriaValues->get($criteriaId);
+                $criteriaValue->update([
+                    'value' => $value,
+                    'is_selected' => $isSelected
+                ]);
+            } else {
+                // Create new criteria value
+                CriteriaValue::create([
+                    'alternative_id' => $alternative->id,
+                    'criteria_id' => $criteriaId,
+                    'value' => $value,
+                    'is_selected' => $isSelected
+                ]);
             }
         }
     }
