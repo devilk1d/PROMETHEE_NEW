@@ -472,6 +472,374 @@
     color: var(--gray-700);
 }
 
+/* Calculation Steps - Aligned with Main Design */
+.calculation-steps {
+    margin-top: 2rem;
+}
+
+.step-card {
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+    transition: var(--transition);
+}
+
+.step-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.step-header {
+    background: linear-gradient(135deg, var(--primary-500) 0%, var(--primary-600) 100%);
+    color: white;
+    padding: 1.5rem;
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: var(--transition);
+}
+
+.step-header:hover {
+    background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-700) 100%);
+}
+
+.step-header h4 {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.step-header i {
+    font-size: 1.25rem;
+    color: white;
+}
+
+.step-toggle {
+    font-size: 1.25rem;
+    transition: transform 0.3s ease;
+    color: white;
+}
+
+.step-toggle.expanded {
+    transform: rotate(180deg);
+}
+
+.step-content {
+    padding: 1.5rem;
+    display: none;
+}
+
+.step-content.active {
+    display: block;
+}
+
+/* Matrix Container */
+.matrix-container {
+    overflow-x: auto;
+    margin: 1rem 0;
+    border: 1px solid var(--gray-200);
+    border-radius: 12px;
+}
+
+.matrix-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 600px;
+    font-size: 0.9rem;
+    background: var(--white);
+}
+
+.matrix-table th,
+.matrix-table td {
+    padding: 1rem 0.75rem;
+    text-align: center;
+    border-bottom: 1px solid var(--gray-100);
+}
+
+.matrix-table th {
+    background: linear-gradient(135deg, var(--gray-50) 0%, var(--gray-100) 100%);
+    font-weight: 600;
+    color: var(--gray-700);
+    font-size: 0.875rem;
+    border-bottom: 2px solid var(--gray-200);
+}
+
+.matrix-table tbody tr:nth-child(even) {
+    background: var(--gray-50);
+}
+
+.matrix-table tbody tr:hover {
+    background: var(--blue-50);
+    transition: var(--transition);
+}
+
+.matrix-table td:first-child {
+    font-weight: 600;
+    color: var(--gray-900);
+    text-align: left;
+    background: var(--gray-50);
+}
+
+/* Criteria Information */
+.criteria-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.criteria-card {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: 12px;
+    padding: 1.25rem;
+    transition: var(--transition);
+}
+
+.criteria-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+}
+
+.criteria-card h5 {
+    margin: 0 0 0.75rem 0;
+    color: var(--gray-900);
+    font-size: 1rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.criteria-card h5 i {
+    color: var(--primary-600);
+    font-size: 1.125rem;
+}
+
+.criteria-details {
+    font-size: 0.875rem;
+    color: var(--gray-600);
+    line-height: 1.5;
+}
+
+.criteria-details div {
+    margin-bottom: 0.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.25rem 0;
+}
+
+.criteria-details strong {
+    color: var(--gray-900);
+}
+
+/* Flow Summary */
+.flow-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.flow-card {
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: 12px;
+    padding: 1.25rem;
+    text-align: center;
+    transition: var(--transition);
+    box-shadow: var(--shadow-sm);
+}
+
+.flow-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+}
+
+.flow-card h5 {
+    margin: 0 0 0.75rem 0;
+    font-size: 1rem;
+    color: var(--gray-700);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.flow-card h5 i {
+    color: var(--primary-600);
+    font-size: 1.125rem;
+}
+
+.flow-value-large {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin: 0.5rem 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.flow-value-large.positive {
+    color: var(--emerald-600);
+}
+
+.flow-value-large.negative {
+    color: var(--rose-600);
+}
+
+.flow-value-large.neutral {
+    color: var(--gray-500);
+}
+
+.flow-value-large i {
+    font-size: 1.25rem;
+}
+
+/* Step Description */
+.step-description {
+    background: var(--blue-50);
+    border: 1px solid var(--blue-200);
+    border-left: 4px solid var(--blue-500);
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+    border-radius: 0 12px 12px 0;
+}
+
+.step-description p {
+    margin: 0;
+    color: var(--blue-800);
+    line-height: 1.6;
+    font-size: 0.95rem;
+}
+
+.step-description i {
+    color: var(--blue-600);
+    margin-right: 0.5rem;
+}
+
+/* Matrix Highlighting */
+.matrix-highlight {
+    background: var(--amber-50) !important;
+    color: var(--amber-800) !important;
+    font-weight: 600;
+    border: 2px solid var(--amber-200) !important;
+}
+
+.matrix-diagonal {
+    background: var(--gray-100) !important;
+    color: var(--gray-500) !important;
+    font-style: italic;
+}
+
+/* Calculation Result Highlight */
+.calculation-result {
+    background: linear-gradient(135deg, var(--emerald-50) 0%, var(--blue-50) 100%);
+    border: 2px solid var(--emerald-200);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-top: 1rem;
+    text-align: center;
+}
+
+.calculation-result h6 {
+    margin: 0 0 0.5rem 0;
+    color: var(--gray-700);
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.calculation-result .result-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--emerald-600);
+    margin: 0;
+}
+
+/* Progress Indicators */
+.step-progress {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: auto;
+    font-size: 0.875rem;
+    color: white;
+    opacity: 0.8;
+}
+
+.step-number {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .criteria-info {
+        grid-template-columns: 1fr;
+    }
+    
+    .flow-summary {
+        grid-template-columns: 1fr;
+    }
+    
+    .step-header {
+        padding: 1rem;
+        flex-direction: column;
+        gap: 0.5rem;
+        text-align: center;
+    }
+    
+    .step-header h4 {
+        font-size: 1rem;
+    }
+    
+    .matrix-container {
+        border-radius: 8px;
+    }
+    
+    .matrix-table th,
+    .matrix-table td {
+        padding: 0.5rem 0.25rem;
+        font-size: 0.8rem;
+    }
+    
+    .criteria-card {
+        padding: 1rem;
+    }
+    
+    .flow-card {
+        padding: 1rem;
+    }
+    
+    .flow-value-large {
+        font-size: 1.5rem;
+    }
+    
+    .step-content {
+        padding: 1rem;
+    }
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .header-main {

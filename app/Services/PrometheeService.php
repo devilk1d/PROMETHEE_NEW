@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Alternative;
 use App\Models\Criteria;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Collection;
 
 class PrometheeService
 {
@@ -14,13 +15,17 @@ class PrometheeService
     public function calculatePromethee($alternatives, $criterias)
     {
         try {
+            // Convert to collections if not already
+            $alternatives = collect($alternatives);
+            $criterias = collect($criterias);
+            
             // Validate input data
             $this->validateInputData($alternatives, $criterias);
             
             // 1. Build decision matrix
             $decisionMatrix = $this->buildDecisionMatrix($alternatives, $criterias);
             
-            // 2. Normalize decision matrix (if needed)
+            // 2. Normalize decision matrix (opsional dalam PROMETHEE)
             $normalizedMatrix = $this->normalizeDecisionMatrix($decisionMatrix, $criterias);
             
             // 3. Calculate preference matrix for each criterion
@@ -43,8 +48,8 @@ class PrometheeService
                 'flows' => $flows,
                 'ranking' => $ranking,
                 'metadata' => [
-                    'alternatives_count' => count($alternatives),
-                    'criteria_count' => count($criterias),
+                    'alternatives_count' => $alternatives->count(),
+                    'criteria_count' => $criterias->count(),
                     'total_weight' => $criterias->sum('weight')
                 ]
             ];
@@ -58,42 +63,116 @@ class PrometheeService
     /**
      * Validate input data for PROMETHEE calculation
      */
-    private function validateInputData($alternatives, $criterias)
+    private function validateInputData(Collection $alternatives, Collection $criterias)
     {
-        if (count($alternatives) < 2) {
+        if ($alternatives->count() < 2) {
             throw new \Exception('At least 2 alternatives are required for PROMETHEE analysis');
         }
         
-        if (count($criterias) < 1) {
+        if ($criterias->count() < 1) {
             throw new \Exception('At least 1 criterion is required for PROMETHEE analysis');
         }
         
-        $totalWeight = $criterias->sum('weight');
-        if (abs($totalWeight - 1.0) > 0.0001) { // Check if weights sum to ~1
-            throw new \Exception('Total weight of criteria must sum to 1');
+        // Check and normalize weights
+        $totalWeight = 0;
+        foreach ($criterias as $criteria) {
+            $weight = is_array($criteria) ? $criteria['weight'] : $criteria->weight;
+            if ($weight < 0) {
+                throw new \Exception('All weights must be non-negative');
+            }
+            $totalWeight += $weight;
         }
         
-        foreach ($alternatives as $alternative) {
+        if ($totalWeight <= 0) {
+            throw new \Exception('Total weight must be greater than 0');
+        }
+        
+        // Normalize weights to sum to 1
+        if (abs($totalWeight - 1.0) > 0.0001) {
             foreach ($criterias as $criteria) {
-                $value = $alternative->getCriteriaValue($criteria->id);
-                if (!is_numeric($value)) {
-                    throw new \Exception("Alternative '{$alternative->name}' missing value for criterion '{$criteria->name}'");
+                if (is_array($criteria)) {
+                    $criteria['weight'] = $criteria['weight'] / $totalWeight;
+                } else {
+                    $criteria->weight = $criteria->weight / $totalWeight;
                 }
             }
         }
+        
+        // Validate that all alternatives have values for all criteria
+        foreach ($alternatives as $alternative) {
+            foreach ($criterias as $criteria) {
+                $criteriaId = is_array($criteria) ? $criteria['id'] : $criteria->id;
+                $criteriaName = is_array($criteria) ? $criteria['name'] : $criteria->name;
+                
+                $value = $this->getAlternativeCriteriaValue($alternative, $criteriaId);
+                if (!is_numeric($value)) {
+                    $altName = is_object($alternative) ? $alternative->name : $alternative['name'];
+                    throw new \Exception("Alternative '{$altName}' missing or invalid value for criterion '{$criteriaName}'");
+                }
+            }
+        }
+        
+        // Validate preference function parameters
+        foreach ($criterias as $criteria) {
+            $this->validatePreferenceFunctionParams($criteria);
+        }
+    }
+
+    /**
+     * Validate preference function parameters
+     */
+    private function validatePreferenceFunctionParams($criteria)
+    {
+        $p = is_array($criteria) ? ($criteria['p'] ?? 0) : ($criteria->p ?? 0);
+        $q = is_array($criteria) ? ($criteria['q'] ?? 0) : ($criteria->q ?? 0);
+        $functionType = is_array($criteria) ? ($criteria['preference_function'] ?? 'usual') : ($criteria->preference_function ?? 'usual');
+        
+        // Validate p and q parameters
+        if ($p < 0 || $q < 0) {
+            throw new \Exception('Parameters p and q must be non-negative');
+        }
+        
+        // For some functions, p should be greater than q
+        if (in_array(strtolower($functionType), ['linear_quasi', 'linear-quasi', '5']) && $p <= $q && $p > 0) {
+            throw new \Exception('For linear-quasi function, parameter p must be greater than q');
+        }
+    }
+
+    /**
+     * Get criteria value for an alternative
+     */
+    private function getAlternativeCriteriaValue($alternative, $criteriaId)
+    {
+        if (is_object($alternative) && method_exists($alternative, 'getCriteriaValue')) {
+            return $alternative->getCriteriaValue($criteriaId);
+        }
+        
+        if (is_object($alternative) && isset($alternative->criteriaValues)) {
+            $criteriaValue = $alternative->criteriaValues->where('criteria_id', $criteriaId)->first();
+            return $criteriaValue ? $criteriaValue->value : null;
+        }
+        
+        if (is_array($alternative) && isset($alternative['criteria_values'][$criteriaId])) {
+            return $alternative['criteria_values'][$criteriaId];
+        }
+        
+        return null;
     }
 
     /**
      * Build decision matrix from alternatives and criteria
      */
-    private function buildDecisionMatrix($alternatives, $criterias)
+    private function buildDecisionMatrix(Collection $alternatives, Collection $criterias)
     {
         $matrix = [];
         
         foreach ($alternatives as $alternative) {
+            $altId = is_object($alternative) ? $alternative->id : $alternative['id'];
+            
             foreach ($criterias as $criteria) {
-                $value = $alternative->getCriteriaValue($criteria->id);
-                $matrix[$alternative->id][$criteria->id] = (float) $value;
+                $criteriaId = is_array($criteria) ? $criteria['id'] : $criteria->id;
+                $value = $this->getAlternativeCriteriaValue($alternative, $criteriaId);
+                $matrix[$altId][$criteriaId] = (float) $value;
             }
         }
         
@@ -101,41 +180,45 @@ class PrometheeService
     }
 
     /**
-     * Normalize decision matrix based on criteria type
+     * Normalize decision matrix (opsional dalam PROMETHEE)
      */
-    private function normalizeDecisionMatrix($decisionMatrix, $criterias)
+    private function normalizeDecisionMatrix($decisionMatrix, Collection $criterias)
     {
         $normalizedMatrix = [];
         $minMaxValues = [];
         
-        // First find min and max values for each criterion
+        // Calculate min and max for each criterion
         foreach ($criterias as $criteria) {
-            $values = array_column($decisionMatrix, $criteria->id);
-            $minMaxValues[$criteria->id] = [
+            $criteriaId = is_array($criteria) ? $criteria['id'] : $criteria->id;
+            $values = array_column($decisionMatrix, $criteriaId);
+            $minMaxValues[$criteriaId] = [
                 'min' => min($values),
                 'max' => max($values)
             ];
         }
         
-        // Then normalize each value
+        // Normalize each value
         foreach ($decisionMatrix as $altId => $criteriaValues) {
             foreach ($criteriaValues as $criteriaId => $value) {
-                $criteria = $criterias->firstWhere('id', $criteriaId);
+                $criteria = $criterias->first(function($c) use ($criteriaId) {
+                    $id = is_array($c) ? $c['id'] : $c->id;
+                    return $id == $criteriaId;
+                });
+                
+                $criteriaType = is_array($criteria) ? $criteria['type'] : $criteria->type;
                 $min = $minMaxValues[$criteriaId]['min'];
                 $max = $minMaxValues[$criteriaId]['max'];
                 $range = $max - $min;
                 
                 if ($range == 0) {
-                    // Avoid division by zero - all values are same
-                    $normalizedMatrix[$altId][$criteriaId] = 1.0;
+                    // Semua nilai sama - tidak ada preferensi
+                    $normalizedMatrix[$altId][$criteriaId] = $value; // Gunakan nilai asli
                     continue;
                 }
                 
-                if ($criteria->type === 'benefit') {
-                    // For benefit criteria: (value - min) / (max - min)
+                if ($criteriaType === 'benefit' || $criteriaType === 'maximize') {
                     $normalizedMatrix[$altId][$criteriaId] = ($value - $min) / $range;
                 } else {
-                    // For cost criteria: (max - value) / (max - min)
                     $normalizedMatrix[$altId][$criteriaId] = ($max - $value) / $range;
                 }
             }
@@ -147,110 +230,130 @@ class PrometheeService
     /**
      * Calculate preference matrices for each criterion
      */
-    private function calculatePreferenceMatrices($normalizedMatrix, $alternatives, $criterias)
+    private function calculatePreferenceMatrices($normalizedMatrix, Collection $alternatives, Collection $criterias)
     {
         $preferenceMatrices = [];
 
         foreach ($criterias as $criteria) {
+            $criteriaId = is_array($criteria) ? $criteria['id'] : $criteria->id;
             $matrix = [];
             
             foreach ($alternatives as $altA) {
+                $altAId = is_object($altA) ? $altA->id : $altA['id'];
+                
                 foreach ($alternatives as $altB) {
-                    if ($altA->id === $altB->id) {
-                        // Self-comparison is always 0
-                        $matrix[$altA->id][$altB->id] = 0;
+                    $altBId = is_object($altB) ? $altB->id : $altB['id'];
+                    
+                    if ($altAId === $altBId) {
+                        $matrix[$altAId][$altBId] = 0;
                         continue;
                     }
                     
-                    $valueA = $normalizedMatrix[$altA->id][$criteria->id];
-                    $valueB = $normalizedMatrix[$altB->id][$criteria->id];
+                    $valueA = $normalizedMatrix[$altAId][$criteriaId];
+                    $valueB = $normalizedMatrix[$altBId][$criteriaId];
                     
-                    // Calculate deviation (d)
+                    // Calculate deviation
                     $deviation = $valueA - $valueB;
                     
                     // Apply preference function
-                    $preference = $this->applyPreferenceFunction(
-                        $deviation,
-                        $criteria->preference_function,
-                        $criteria->p ?? 0,
-                        $criteria->q ?? 0
-                    );
+                    $preferenceFunction = is_array($criteria) ? ($criteria['preference_function'] ?? 'usual') : ($criteria->preference_function ?? 'usual');
+                    $p = is_array($criteria) ? ($criteria['p'] ?? 0) : ($criteria->p ?? 0);
+                    $q = is_array($criteria) ? ($criteria['q'] ?? 0) : ($criteria->q ?? 0);
                     
-                    $matrix[$altA->id][$altB->id] = $preference;
+                    $preference = $this->applyPreferenceFunction($deviation, $preferenceFunction, $p, $q);
+                    
+                    $matrix[$altAId][$altBId] = $preference;
                 }
             }
             
-            $preferenceMatrices[$criteria->id] = $matrix;
+            $preferenceMatrices[$criteriaId] = $matrix;
         }
 
         return $preferenceMatrices;
     }
 
     /**
-     * Apply preference function to calculate preference degree
+     * Apply preference function - DIPERBAIKI
      */
     private function applyPreferenceFunction($deviation, $functionType, $p = 0, $q = 0)
     {
-        // If deviation is negative or zero, no preference
+        // Jika tidak ada deviasi positif, tidak ada preferensi
         if ($deviation <= 0) {
             return 0;
         }
         
-        switch ($functionType) {
-            case Criteria::PREFERENCE_USUAL:
-                // Type I: Usual criterion (0-1)
-                return $deviation > 0 ? 1 : 0;
+        switch (strtolower($functionType)) {
+            case 'usual':
+            case '1':
+                return 1;
                 
-            case Criteria::PREFERENCE_QUASI:
-                // Type II: Quasi criterion (U-shape)
+            case 'quasi':
+            case 'u-shape':
+            case '2':
                 return $deviation > $q ? 1 : 0;
                 
-            case Criteria::PREFERENCE_LINEAR:
-                // Type III: Linear preference (V-shape)
+            case 'linear':
+            case 'v-shape':
+            case '3':
                 if ($p <= 0) return 1;
                 return min(1, $deviation / $p);
                 
-            case Criteria::PREFERENCE_LEVEL:
-                // Type IV: Level criterion
+            case 'level':
+            case '4':
                 if ($deviation <= $q) return 0;
                 if ($deviation > $p) return 1;
                 return 0.5;
                 
-            case Criteria::PREFERENCE_LINEAR_QUASI:
-                // Type V: Linear with indifference area
+            case 'linear_quasi':
+            case 'linear-quasi':
+            case '5':
                 if ($deviation <= $q) return 0;
                 if ($deviation >= $p) return 1;
+                if ($p <= $q) return 1;
                 return ($deviation - $q) / ($p - $q);
                 
-            case Criteria::PREFERENCE_GAUSSIAN:
-                // Type VI: Gaussian criterion
+            case 'gaussian':
+            case '6':
                 if ($p <= 0) return 1;
-                return 1 - exp(-($deviation * $deviation) / (2 * $p * $p));
+                // Perbaikan: gunakan variance yang lebih stabil
+                $variance = ($p * $p) / 2;
+                return 1 - exp(-($deviation * $deviation) / (2 * $variance));
                 
             default:
-                return 0;
+                return 1;
         }
     }
 
     /**
-     * Calculate global preference matrix by aggregating with weights
+     * Calculate global preference matrix
      */
-    private function calculateGlobalPreference($preferenceMatrices, $criterias)
+    private function calculateGlobalPreference($preferenceMatrices, Collection $criterias)
     {
         $globalMatrix = [];
         
-        // Initialize global matrix with zeros
+        if (empty($preferenceMatrices)) {
+            throw new \Exception('No preference matrices available for calculation');
+        }
+        
         $firstMatrix = reset($preferenceMatrices);
+        
+        // Initialize with zeros
         foreach (array_keys($firstMatrix) as $altA) {
             foreach (array_keys($firstMatrix[$altA]) as $altB) {
                 $globalMatrix[$altA][$altB] = 0;
             }
         }
         
-        // Aggregate preferences with weights
+        // Aggregate with weights
         foreach ($preferenceMatrices as $criteriaId => $matrix) {
-            $criteria = $criterias->firstWhere('id', $criteriaId);
-            $weight = $criteria->weight;
+            $criteria = $criterias->first(function($c) use ($criteriaId) {
+                $id = is_array($c) ? $c['id'] : $c->id;
+                return $id == $criteriaId;
+            });
+            
+            if (!$criteria) continue;
+            
+            $weight = is_array($criteria) ? $criteria['weight'] : $criteria->weight;
             
             foreach ($matrix as $altA => $preferences) {
                 foreach ($preferences as $altB => $preference) {
@@ -263,27 +366,36 @@ class PrometheeService
     }
 
     /**
-     * Calculate PROMETHEE flows (positive, negative, and net)
+     * Calculate PROMETHEE flows
      */
-    private function calculateFlows($globalMatrix, $alternatives)
+    private function calculateFlows($globalMatrix, Collection $alternatives)
     {
         $flows = [];
-        $n = count($alternatives);
+        $n = $alternatives->count();
+
+        if ($n <= 1) {
+            throw new \Exception('Cannot calculate flows with less than 2 alternatives');
+        }
 
         foreach ($alternatives as $alternative) {
-            $altId = $alternative->id;
+            $altId = is_object($alternative) ? $alternative->id : $alternative['id'];
             
-            // Calculate positive flow (φ+) - sum of outgoing flows
-            $positiveFlow = array_sum($globalMatrix[$altId]) / ($n - 1);
+            // Positive flow: rata-rata outgoing preference
+            $positiveFlow = 0;
+            if (isset($globalMatrix[$altId])) {
+                $positiveFlow = array_sum($globalMatrix[$altId]) / ($n - 1);
+            }
             
-            // Calculate negative flow (φ-) - sum of incoming flows
+            // Negative flow: rata-rata incoming preference
             $negativeFlow = 0;
             foreach ($globalMatrix as $fromAltId => $preferences) {
-                $negativeFlow += $preferences[$altId] ?? 0;
+                if (isset($preferences[$altId])) {
+                    $negativeFlow += $preferences[$altId];
+                }
             }
             $negativeFlow = $negativeFlow / ($n - 1);
             
-            // Calculate net flow (φ)
+            // Net flow
             $netFlow = $positiveFlow - $negativeFlow;
             
             $flows[$altId] = [
@@ -297,39 +409,46 @@ class PrometheeService
     }
 
     /**
-     * Generate final ranking based on PROMETHEE flows
+     * Generate final ranking
      */
-    private function generateRanking($flows, $alternatives)
+    private function generateRanking($flows, Collection $alternatives)
     {
         $rankingData = [];
         
         foreach ($alternatives as $alternative) {
-            $altId = $alternative->id;
+            $altId = is_object($alternative) ? $alternative->id : $alternative['id'];
+            $altName = is_object($alternative) ? $alternative->name : $alternative['name'];
+            
+            if (!isset($flows[$altId])) continue;
+            
             $flow = $flows[$altId];
             
             $rankingData[] = [
                 'id' => $altId,
-                'name' => $alternative->name,
+                'name' => $altName,
                 'positive_flow' => $flow['positive'],
                 'negative_flow' => $flow['negative'],
                 'net_flow' => $flow['net']
             ];
         }
         
-        // Sort by net flow (descending), then positive flow (descending), then negative flow (ascending)
+        // Sort by net flow desc, then positive flow desc, then negative flow asc
         usort($rankingData, function($a, $b) {
-            if (abs($a['net_flow'] - $b['net_flow']) > 0.000001) {
-                return $b['net_flow'] <=> $a['net_flow'];
+            $netDiff = $b['net_flow'] - $a['net_flow'];
+            if (abs($netDiff) > 0.000001) {
+                return $netDiff > 0 ? 1 : -1;
             }
             
-            if (abs($a['positive_flow'] - $b['positive_flow']) > 0.000001) {
-                return $b['positive_flow'] <=> $a['positive_flow'];
+            $posDiff = $b['positive_flow'] - $a['positive_flow'];
+            if (abs($posDiff) > 0.000001) {
+                return $posDiff > 0 ? 1 : -1;
             }
             
-            return $a['negative_flow'] <=> $b['negative_flow'];
+            $negDiff = $a['negative_flow'] - $b['negative_flow'];
+            return $negDiff > 0 ? 1 : ($negDiff < 0 ? -1 : 0);
         });
         
-        // Convert to final ranking format with ranks
+        // Convert to final ranking with ranks
         $ranking = [];
         foreach ($rankingData as $index => $data) {
             $ranking[$data['id']] = [
